@@ -1,0 +1,12 @@
+#line{
+    border: 1px solid black;
+}
+
+#body{
+    width: 1110px;
+    height: fit-content;
+}
+
+textarea {
+    min-height: 400px;
+}
