@@ -1,12 +1,59 @@
+body{
+    background-color: lavenderblush;
+}
+
+.container{
+    margin-top: 10px;
+}
+
 #line{
-    border: 1px solid black;
+    border: 0.01px solid rgb(203, 203, 214);
+    margin: 20px 0px;
 }
 
 #body{
-    width: 1110px;
-    height: fit-content;
+    width: 100%;
+    height: min-content;
+    border: none;
+    outline: none;
 }
 
 textarea {
     min-height: 400px;
+    border-radius: 10px;
+    padding: 5px 10px;
+}
+
+.email{
+    border: none;
+    margin: 10px;
+    border-radius: 10px;
+    height: 80px;
+    padding: 10px;
+    /* font-size: 20px; */
+    animation-name: hide;
+}
+
+.email:hover{
+    border: none;
+    outline: none;
+    box-shadow: 0px 0px 20px lightgray;
+    cursor: pointer;
+}
+
+.sender, .subject{
+    font-weight: bold;
+}
+
+.subject{
+    margin-top: 5px;
+}
+
+#details{
+    /* margin-right: 700px; */
+    float: left;
+}
+
+#buttons{
+    padding-top: 40px;
 }
