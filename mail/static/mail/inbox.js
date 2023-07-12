@@ -11,85 +11,140 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function compose_email() {
+//Helper functions
 
-  // Show compose view and hide other views
-  document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#email-content-view').style.display = 'none';
-  document.querySelector('#compose-view').style.display = 'block';
+//===============================================================================================================================================
 
-  // Clear out composition fields
+//Send the composed email data to the database.
+function sendEmail() {
+  // Get the details from the form, namely, the recipient, the subject, and the body of the email, respectively.
+  const R = document.querySelector('#compose-recipients').value;
+  const S = document.querySelector('#compose-subject').value;
+  const B = document.querySelector('#compose-body').value;
+
+  //Make an asynchronous POST request to the API to save the email in the database.
+  fetch('/emails', {
+    method: 'POST',
+    body: JSON.stringify({
+      recipients: R,
+      subject: S,
+      body: B
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+    // Load the mailbox once the email has been sent.
+    load_mailbox('sent');
+  });
+}
+
+//Function to display a given view
+function display(view) {
+  if (view === "emails") {
+    document.querySelector('#emails-view').style.display = 'block';
+
+    //Hide other views
+    document.querySelector('#email-content-view').style.display = 'none';
+    document.querySelector('#compose-view').style.display = 'none';
+  }
+  else if(view === "email") {
+    document.querySelector('#email-content-view').style.display = 'block';
+
+    //Hide other views
+    document.querySelector('#emails-view').style.display = 'none';
+    document.querySelector('#compose-view').style.display = 'none';
+  }
+  else if (view === "compose") {
+    document.querySelector('#compose-view').style.display = 'block';
+
+    //Hide other views
+    document.querySelector('#emails-view').style.display = 'none';
+    document.querySelector('#email-content-view').style.display = 'none';
+  }
+}
+
+//Function to clear compose-email form fields
+function clearFields() {
   document.querySelector('#compose-recipients').value = '';
   document.querySelector('#compose-subject').value = '';
   document.querySelector('#compose-body').value = '';
+}
+
+//===============================================================================================================================================
+
+//React components
+
+
+//Function to properly display the compose email form and send emails to the data base.
+function compose_email() {
+
+  // Show compose view and hide other views
+  display("compose");
+
+  // Clear out composition fields
+  clearFields();
 
   // Wait for the user to click the 'send email' button.
   document.querySelector('#compose-form').onsubmit = () => {
-
-    // Get the details from the form, namely, the recipient, the subject, and the body of the email, respectively.
-    const R = document.querySelector('#compose-recipients').value;
-    const S = document.querySelector('#compose-subject').value;
-    const B = document.querySelector('#compose-body').value;
-
-    //Make an asynchronous POST request to the API to save the email in the database.
-    fetch('/emails', {
-      method: 'POST',
-      body: JSON.stringify({
-        recipients: R,
-        subject: S,
-        body: B
-      })
-    })
-    .then(response => response.json())
-    .then(result => {
-      console.log(result);
-
-      // Load the mailbox once the email has been sent.
-      load_mailbox('sent');
-    });
+    sendEmail();
     // Prevent the page from refreshing.
     return false;
   }
 }
 
-// Function to load the mailbox: Inbox, sent, archive.
-function load_mailbox(mailbox) {
+// Function to load the mailbox: Inbox, sent, archive.(Use React for this!!!)
+async function load_mailbox(mailbox) {
+
+  // Show the mailbox name
+  document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+
+  // Show the mailbox and hide other views
+  display("emails");
 
   // Make an asynchronous GET request to the API to get all the emails for the particular mailbox.
-  fetch(`/emails/${mailbox}`)
+  await fetch(`/emails/${mailbox}`)
   .then(response => response.json())
   .then(emails => {
-    console.log(emails);
     emails.forEach(email => {
-      // Render each email.
+      // Email tile.
       const outer_div = document.createElement('div');
       outer_div.className = 'email';
+
+      //Background color of the tile based on read status
       if(email.read){
         outer_div.style.backgroundColor = 'lightgrey';
       } else {
         outer_div.style.backgroundColor = 'white';
       }
       
+      //Div containing the header for the email tile.
       const top = document.createElement('div');
       top.style.display = 'flex';
 
+      //Div containing the information about the sender
       const sender_div = document.createElement('div');
       sender_div.className = 'sender';
       sender_div.style.textAlign = 'left';
       sender_div.style.width = '50%';
       sender_div.innerHTML = `From: ${email.sender}`;
 
+      //Div containing the subject of the email
       const subject_div = document.createElement('div');
       subject_div.className = 'subject';
       subject_div.innerHTML = email.subject;
 
+      //Div containing the timestamp
       const timestamp_div = document.createElement('div');
       timestamp_div.style.textAlign = 'right';
       timestamp_div.style.width = '50%';
       timestamp_div.innerHTML = email.timestamp;
 
+
+      //Apend the sender and timestamp info to top
       top.append(sender_div, timestamp_div);
 
+
+      //Append top and subject to outer_div
       outer_div.append(top, subject_div);
       document.querySelector('#emails-view').append(outer_div);
 
@@ -97,35 +152,25 @@ function load_mailbox(mailbox) {
       outer_div.addEventListener('click', () => view_email(email, mailbox));
     })
   })
-  
-  // Show the mailbox and hide other views
-  document.querySelector('#emails-view').style.display = 'block';
-  document.querySelector('#email-content-view').style.display = 'none';
-  document.querySelector('#compose-view').style.display = 'none';
-
-  // Show the mailbox name
-  document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
-  return false;
 }
 
 // Function to display an email clicked upon by the user.
 function view_email(email, mailbox){
 
   // Show the email view and hide other views.
-  document.querySelector('#email-content-view').style.display = 'block';
-  document.querySelector('#emails-view').innerHTML = '';
-  document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#compose-view').style.display = 'none';
+  display("email");
 
   // Make an asynchronous GET request to change the read status of that email to true.
-  fetch(`/emails/${email.id}`, {
-    method: 'PUT', 
-    body: JSON.stringify({
-      read: true
-    })
-  })
+  if (mailbox === "inbox") {
+	fetch(`/emails/${email.id}`, {
+		method: 'PUT', 
+		body: JSON.stringify({
+		  read: true
+		})
+	  })
+  }
 
-  // Render the email in an appropriate format.
+  // Render the email in an appropriate format.(Do it in React!)
   const from = document.querySelector('#from');
   from.innerHTML = email.sender;
 
@@ -150,11 +195,10 @@ function view_email(email, mailbox){
     archive.innerHTML = 'Unarchive';
   }else {
     archive.style.display = 'none';
-    document.querySelector('#reply').style.display = 'none';
   }
 
   // Add the onclick property for the 'reply' and 'archive' buttons.
-  archive.onclick = () => archive_it(email, mailbox);
+  archive.onclick = () => archiveEmail(email, mailbox);
   document.querySelector('#reply').onclick = () => reply(email);
 
   const body = document.querySelector('#body');
@@ -163,11 +207,11 @@ function view_email(email, mailbox){
 }
 
 // Function to archive a particular email.
-function archive_it(email, mailbox){
+function archiveEmail(email, mailbox){
 
   // Determine whether the email has to be archived/unarchived
   // based on the mailbox from which the email was accessed.
-  let archive = '';
+  let archive = null;
   if (mailbox === 'inbox'){
     archive = true;
   } else {
@@ -182,11 +226,9 @@ function archive_it(email, mailbox){
     })
   })
   .then(result => {
-    console.log(result);
     // once the mail id archived, load the inbox.
     load_mailbox('inbox');
   });
-  return false;
 }
 
 // Function to make a reply to an email.
