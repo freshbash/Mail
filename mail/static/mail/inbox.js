@@ -184,7 +184,10 @@ async function load_mailbox(mailbox) {
 		archive.append(archive_icon);
 
 		//Add event listeners to the buttons
-		archive.addEventListener("click", () => archiveEmail(email, mailbox));
+		archive.addEventListener("click", (e) => {
+			e.stopPropagation();
+			archiveEmail(email, mailbox)
+		});
 
 		//Add the buttons to actions div
 		actions.append(archive, del, read);
