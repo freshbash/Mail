@@ -15,6 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //===============================================================================================================================================
 
+//Click action
+function click(tab) {
+	let clickEvent = new MouseEvent("click", {
+		"view": window,
+		"bubbles": true,
+		"cancelable": false
+	});
+	document.querySelector(`#${tab}`).dispatchEvent(clickEvent);
+}
+
 //Send the composed email data to the database.
 function sendEmail() {
 	// Get the details from the form, namely, the recipient, the subject, and the body of the email, respectively.
@@ -34,7 +44,7 @@ function sendEmail() {
 	.then(response => response.json())
 	.then(result => {
 		// Load the mailbox once the email has been sent.
-		load_mailbox('sent');
+		click("sent");
 	});
 }
 
@@ -72,9 +82,6 @@ function clearFields() {
 
 //===============================================================================================================================================
 
-//React components
-
-
 //Function to properly display the compose email form and send emails to the data base.
 function compose_email() {
 
@@ -96,7 +103,7 @@ function compose_email() {
 async function load_mailbox(mailbox) {
 
 	// Show the mailbox name
-	document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+	document.querySelector('#emails-view').innerHTML = `<h3 class="mb-4">${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
 	// Show the mailbox and hide other views
 	display("emails");
@@ -107,49 +114,93 @@ async function load_mailbox(mailbox) {
 	.then(emails => {
 		emails.forEach(email => {
 		// Email tile.
-		const outer_div = document.createElement('div');
-		outer_div.className = 'email';
+		const card = document.createElement("div");
+		card.className = "card email";
+
+		const cardBody = document.createElement("div");
+		cardBody.className = "card-body"
+		card.append(cardBody)
 
 		//Background color of the tile based on read status
 		if(email.read){
-			outer_div.style.backgroundColor = 'lightgrey';
+			card.style.backgroundColor = 'rgb(236, 236, 236)';
 		} else {
-			outer_div.style.backgroundColor = 'white';
+			card.style.backgroundColor = 'white';
 		}
 		
 		//Div containing the header for the email tile.
 		const top = document.createElement('div');
-		top.style.display = 'flex';
+		top.className = 'd-flex justify-content-between';
 
 		//Div containing the information about the sender
 		const sender_div = document.createElement('div');
-		sender_div.className = 'sender';
-		sender_div.style.textAlign = 'left';
-		sender_div.style.width = '50%';
-		sender_div.innerHTML = `From: ${email.sender}`;
+		if (mailbox !== "sent") {
+			sender_div.innerHTML = `From: ${email.sender}`;
+		} else {
+			sender_div.innerHTML = `To: ${email.sender}`;
+		}
+
+		//Div containing the timestamp
+		const timestamp_div = document.createElement('div');
+		timestamp_div.innerHTML = email.timestamp;
+
+		const bottom = document.createElement("div");
+		bottom.className = "d-flex justify-content-between";
+		
 
 		//Div containing the subject of the email
 		const subject_div = document.createElement('div');
 		subject_div.className = 'subject';
 		subject_div.innerHTML = email.subject;
 
-		//Div containing the timestamp
-		const timestamp_div = document.createElement('div');
-		timestamp_div.style.textAlign = 'right';
-		timestamp_div.style.width = '50%';
-		timestamp_div.innerHTML = email.timestamp;
+		//Div containing the action buttons
+		const actions = document.createElement("div");
+		actions.className = "d-flex justify-content-evenly";
+		
+		//Action buttons
 
+		//Delete button
+		const del = document.createElement("button");
+		del.className = "btn";
+		const del_icon = document.createElement('i');
+		del_icon.className = "bi bi-trash";
+		del.append(del_icon);
+
+
+		//Read/Unread button
+		const read = document.createElement("button");
+		read.className = "btn";
+		const read_icon = document.createElement('i');
+		email.read ? read_icon.className = "bi bi-envelope-fill" : read_icon.className = "bi bi-envelope-open"
+		read.append(read_icon);
+
+		//Archive/Unarchive button
+		const archive = document.createElement("button");
+		archive.className = "btn";
+		mailbox === "sent" ? archive.disabled = true : archive.disabled = false;
+
+		const archive_icon = document.createElement('i');
+		email.archived ? archive_icon.className = "bi bi-archive" : archive_icon.className = "bi bi-archive-fill";
+		archive.append(archive_icon);
+
+		//Add event listeners to the buttons
+		archive.addEventListener("click", () => archiveEmail(email, mailbox));
+
+		//Add the buttons to actions div
+		actions.append(archive, del, read);
 
 		//Apend the sender and timestamp info to top
+		//And the subject and the options to bottom
 		top.append(sender_div, timestamp_div);
+		bottom.append(subject_div, actions);
 
 
 		//Append top and subject to outer_div
-		outer_div.append(top, subject_div);
-		document.querySelector('#emails-view').append(outer_div);
+		cardBody.append(top, bottom);
+		document.querySelector('#emails-view').append(card);
 
 		// Add a click event listener to each email.
-		outer_div.addEventListener('click', () => view_email(email, mailbox));
+		card.addEventListener('click', () => view_email(email, mailbox));
 		})
 	})
 }
@@ -227,7 +278,7 @@ function archiveEmail(email, mailbox){
 	})
 	.then(result => {
 		// once the mail id archived, load the inbox.
-		load_mailbox('inbox');
+		click("inbox");
 	});
 }
 
