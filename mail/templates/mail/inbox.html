@@ -48,7 +48,7 @@
         <form id="compose-form">
             <div class="form-group">
                 <label style="font-weight: bold;">From:</label>
-                <input disabled class="form-control" value="{{ request.user.email }}">
+                <input id="sender" disabled class="form-control" value="{{ request.user.email }}">
             </div>
             <div class="form-group">
                 <label style="font-weight: bold;">To:</label>
