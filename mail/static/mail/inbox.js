@@ -79,7 +79,7 @@ function sendEmail() {
 	.then(result => {
 		console.log(result);
 		// Load the mailbox once the email has been sent.
-		click("inbox");
+		click("sent");
 		confirm("Email sent!");
 	})
 	.catch(error => console.log(error));
@@ -340,9 +340,10 @@ function viewEmail(email, mailbox){
 	archive.onclick = async () => {
 		email.archived = !archiveState;
 		await archiveEmail(email, mailbox);
-		archiveState = !archiveState;
+		// archiveState = !archiveState;
 
-		archiveState ? archive.innerHTML = '<i class="bi bi-archive"></i>' : archive.innerHTML = '<i class="bi bi-archive-fill"></i>';
+		// archiveState ? archive.innerHTML = '<i class="bi bi-archive"></i>' : archive.innerHTML = '<i class="bi bi-archive-fill"></i>';
+		click("inbox");
 	}
 
 	//Add functionality for the 'reply' button.
