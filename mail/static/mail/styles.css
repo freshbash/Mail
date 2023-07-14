@@ -24,19 +24,18 @@ textarea {
     padding: 5px 10px;
 }
 
+.email {
+    animation-name: hide;
+    animation-play-state: paused;
+    animation-duration: 0.25s;
+    animation-fill-mode: forwards;
+}
+
 .email:hover{
     border: none;
     outline: none;
     box-shadow: 0px 0px 20px lightgray;
     cursor: pointer;
-}
-
-.sender, .subject{
-    font-weight: bold;
-}
-
-.subject{
-    margin-top: 5px;
 }
 
 #details{
@@ -46,4 +45,22 @@ textarea {
 
 #buttons{
     padding-top: 40px;
+}
+
+@keyframes hide {
+    0% {
+        height: 100%;
+        line-height: 100%;
+        opacity: 1;
+    }
+    75%  {
+        height: 100%;
+        line-height: 100%;
+        opacity: 0;
+    }
+    100% {
+        height: 0%;
+        line-height: 0px;
+        opacity: 0;        
+    }
 }

@@ -25,6 +25,14 @@ function click(tab) {
 	document.querySelector(`#${tab}`).dispatchEvent(clickEvent);
 }
 
+//function to start animation for hiding an element
+function hideAnimation(element) {
+	element.style.animationPlayState = "running";
+	element.addEventListener("animationend", () => {
+		element.remove();
+	})
+}
+
 //Send the composed email data to the database.
 function sendEmail() {
 	// Get the details from the form, namely, the recipient, the subject, and the body of the email, respectively.
@@ -150,7 +158,7 @@ async function load_mailbox(mailbox) {
 
 		//Div containing the subject of the email
 		const subject_div = document.createElement('div');
-		subject_div.className = 'subject';
+		subject_div.className = "d-flex flex-column fw-bold justify-content-center";
 		subject_div.innerHTML = email.subject;
 
 		//Div containing the action buttons
@@ -175,9 +183,8 @@ async function load_mailbox(mailbox) {
 		read.append(read_icon);
 
 		//Archive/Unarchive button
-		const archive = document.createElement("button");
-		archive.className = "btn";
-		mailbox === "sent" ? archive.disabled = true : archive.disabled = false;
+		const archive = document.createElement("button");		
+		mailbox === "sent" ? archive.className = "btn disabled" : archive.className = "btn";
 
 		const archive_icon = document.createElement('i');
 		email.archived ? archive_icon.className = "bi bi-archive" : archive_icon.className = "bi bi-archive-fill";
@@ -186,12 +193,14 @@ async function load_mailbox(mailbox) {
 		//Add event listeners to the buttons
 		archive.addEventListener("click", (e) => {
 			e.stopPropagation();
-			archiveEmail(email)
+			archiveEmail(email);
+			hideAnimation(card);
 		});
 
 		del.addEventListener("click", (e) => {
 			e.stopPropagation();
 			deleteEmail(email);
+			hideAnimation(card);
 		})
 
 		//State variable
