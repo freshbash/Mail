@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
 
+	window.onpopstate = (event) => {
+		console.log(event.state);
+		show(event.state);
+	}
+
   	// By default, load the inbox
   	load_mailbox('inbox');
 
@@ -14,6 +19,28 @@ document.addEventListener('DOMContentLoaded', function() {
 //Helper functions
 
 //===============================================================================================================================================
+
+
+//Function to show confirmation
+function confirm(text) {
+	document.querySelector("#confirmation").innerHTML = `
+		<div class="alert alert-success alert-dismissible fade show" role="alert">
+		${text}
+		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>`;
+}
+//Function to conditionally display history
+function show(state) {
+	if (["inbox", "sent", "archive", "compose"].includes(state.field)) {
+		click(state.field);
+	}
+	else if (state.field === "email") {
+		fetch(`/emails/${state.id}`)
+		.then(response => response.json())
+		.then(email => viewEmail(email, state.mailbox))
+		.catch(error => click("inbox"));
+	}
+}
 
 //Click action
 function click(tab) {
@@ -49,11 +76,13 @@ function sendEmail() {
 		body: B
 		})
 	})
-	.then(response => response.json())
 	.then(result => {
+		console.log(result);
 		// Load the mailbox once the email has been sent.
 		click("inbox");
-	});
+		confirm("Email sent!");
+	})
+	.catch(error => console.log(error));
 }
 
 //Function to display a given view
@@ -99,6 +128,9 @@ function compose_email() {
 	// Clear out composition fields
 	clearFields();
 
+	//Add page to history
+	history.pushState({field: "compose"}, "", "");
+
 	// Wait for the user to click the 'send email' button.
 	document.querySelector('#compose-form').onsubmit = () => {
 		sendEmail();
@@ -115,6 +147,9 @@ async function load_mailbox(mailbox) {
 
 	// Show the mailbox and hide other views
 	display("emails");
+
+	//Add the mailbox to history
+	history.pushState({field: mailbox}, "", "");
 
 	// Make an asynchronous GET request to the API to get all the emails for the particular mailbox.
 	await fetch(`/emails/${mailbox}`)
@@ -138,10 +173,11 @@ async function load_mailbox(mailbox) {
 		
 		//Div containing the header for the email tile.
 		const top = document.createElement('div');
-		top.className = 'd-flex justify-content-between';
+		top.className = 'd-flex flex-column flex-sm-row justify-content-sm-between my-1 my-sm-0';
 
 		//Div containing the information about the sender
 		const sender_div = document.createElement('div');
+		sender_div.className = "my-1 my-sm-0";
 		if (mailbox !== "sent") {
 			sender_div.innerHTML = `From: ${email.sender}`;
 		} else {
@@ -150,20 +186,21 @@ async function load_mailbox(mailbox) {
 
 		//Div containing the timestamp
 		const timestamp_div = document.createElement('div');
+		timestamp_div.className = "my-1 my-sm-0";
 		timestamp_div.innerHTML = email.timestamp;
 
 		const bottom = document.createElement("div");
-		bottom.className = "d-flex justify-content-between";
+		bottom.className = "d-flex flex-column flex-sm-row justify-content-sm-between my-1 my-sm-0";
 		
 
 		//Div containing the subject of the email
 		const subject_div = document.createElement('div');
-		subject_div.className = "d-flex flex-column fw-bold justify-content-center";
+		subject_div.className = "d-flex flex-column fw-bold justify-content-center my-1 my-sm-0";
 		subject_div.innerHTML = email.subject;
 
 		//Div containing the action buttons
 		const actions = document.createElement("div");
-		actions.className = "d-flex justify-content-evenly";
+		actions.className = "d-flex justify-content-evenly my-1 my-sm-0";
 		
 		//Action buttons
 
@@ -191,16 +228,18 @@ async function load_mailbox(mailbox) {
 		archive.append(archive_icon);
 
 		//Add event listeners to the buttons
-		archive.addEventListener("click", (e) => {
+		archive.addEventListener("click", async (e) => {
 			e.stopPropagation();
-			archiveEmail(email);
+			email.archived = !email.archived;
+			await archiveEmail(email);
 			hideAnimation(card);
 		});
 
-		del.addEventListener("click", (e) => {
+		del.addEventListener("click", async (e) => {
 			e.stopPropagation();
-			deleteEmail(email);
+			await deleteEmail(email);
 			hideAnimation(card);
+			confirm("Email deleted!");
 		})
 
 		//State variable
@@ -216,16 +255,14 @@ async function load_mailbox(mailbox) {
 
 			isProcessing = true;
 
-			try {	
-				await markRead(email.id, readStatus);
+			try {
+				email.read = !email.read;
+				await markRead(email);				
 				readStatus = !readStatus;
-
 				//Change style of the tile
-				const currentCardColor = card.style.backgroundColor;
-				currentCardColor === "white" ? card.style.backgroundColor = "rgb(236, 236, 236)" : card.style.backgroundColor = "white";
+				readStatus ? card.style.backgroundColor = "rgb(236, 236, 236)" : card.style.backgroundColor = "white";
 
-				const currentIcon = read_icon.className;
-				currentIcon === "bi bi-envelope-open" ? read_icon.className = "bi bi-envelope-fill" : read_icon.className = "bi bi-envelope-open";
+				readStatus ? read_icon.className = "bi bi-envelope-fill" : read_icon.className = "bi bi-envelope-open";
 			}
 			catch (error) {
 				console.log(error);
@@ -261,7 +298,13 @@ function viewEmail(email, mailbox){
 	display("email");
 
 	// Make an asynchronous PUT request to change the read status of that email to true.
-	markRead(email);
+	if (email.read !== true) {
+		email.read = true;
+		markRead(email);
+	}	
+
+	//Add the mail to history
+	history.pushState({field: "email", id: email.id, mailbox: mailbox}, "", "");
 
 	// Render the email in an appropriate format.(Do it in React!)
 	const from = document.querySelector('#from');
@@ -283,16 +326,34 @@ function viewEmail(email, mailbox){
 	let archive = document.querySelector('#archive');
 
 	if (mailbox === "inbox"){  
-		archive.innerHTML = 'Archive';
+		archive.innerHTML = '<i class="bi bi-archive-fill"></i>';
 	}else if (mailbox === "archive"){
-		archive.innerHTML = 'Unarchive';
+		archive.innerHTML = '<i class="bi bi-archive"></i>';
 	}else {
 		archive.style.display = 'none';
 	}
 
-	// Add the onclick property for the 'reply' and 'archive' buttons.
-	archive.onclick = () => archiveEmail(email, mailbox);
+	//State variable
+	let archiveState = email.archived;
+
+	// Add the onclick property for the 'archive' button.
+	archive.onclick = async () => {
+		email.archived = !archiveState;
+		await archiveEmail(email, mailbox);
+		archiveState = !archiveState;
+
+		archiveState ? archive.innerHTML = '<i class="bi bi-archive"></i>' : archive.innerHTML = '<i class="bi bi-archive-fill"></i>';
+	}
+
+	//Add functionality for the 'reply' button.
 	document.querySelector('#reply').onclick = () => reply(email);
+
+	//Add functionality for the 'delete' button.
+	document.querySelector("#delete").onclick = async() => {
+		await deleteEmail(email);
+		click("inbox");
+		confirm("Email deleted!");
+	}
 
 	const body = document.querySelector('#body');
 	body.innerHTML = email.body;
@@ -300,22 +361,20 @@ function viewEmail(email, mailbox){
 }
 
 //Function to mark an email as read or unread
-async function markRead(emailId, status) {
-	let readStatus;
-	status === true ? readStatus = false : readStatus = true
+async function markRead(email) {
 
 	//Make the API call to the backend
-	fetch(`/emails/${emailId}`, {
+	fetch(`/emails/${email.id}`, {
 		method: "PUT",
 		body: JSON.stringify({
-			read: readStatus
+			read: email.read
 		})
 	})
 	.then(result => console.log(result));
 }
 
 //Function to send an API request to the server to delete an email
-function deleteEmail(email) {
+async function deleteEmail(email) {
 	//Make the asynchronous request
 	fetch(`/emails/${email.id}`, {
 		method: "DELETE",
@@ -327,21 +386,16 @@ function deleteEmail(email) {
 }
 
 // Function to archive a particular email.
-function archiveEmail(email){
-
-	// Determine whether the email has to be archived/unarchived
-	// based on the mailbox from which the email was accessed.
-	let archive = null;
-	email.archived ? archive = false : archive = true
-	
+async function archiveEmail(email){	
 
 	// Make an asynchronous PUT request to the API to archive/unarchive the email.
 	fetch(`/emails/${email.id}`, {
 		method: 'PUT',
 		body: JSON.stringify({
-		archived: archive
+		archived: email.archived
 		})
 	})
+	.then(result => console.log(result));
 }
 
 // Function to make a reply to an email.
@@ -366,5 +420,5 @@ function reply(email){
 	const body =  email.body;
 	const final = `\n\n ${text} \n ${body}`;
 	document.querySelector('#compose-body').value = final;
-	deleteEmail(email)
+	// deleteEmail(email)
 }

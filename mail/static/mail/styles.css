@@ -2,26 +2,16 @@ body{
     background-color: lavenderblush;
 }
 
-.container{
-    margin-top: 10px;
-}
-
-#line{
-    border: 0.01px solid rgb(203, 203, 214);
-    margin: 20px 0px;
+#inbox, #compose, #sent, #archived, #logout {
+    color: black;
 }
 
 #body{
     width: 100%;
-    height: min-content;
-    border: none;
-    outline: none;
-}
-
-textarea {
     min-height: 400px;
     border-radius: 10px;
-    padding: 5px 10px;
+    border: none;
+    outline: none;
 }
 
 .email {
@@ -34,17 +24,13 @@ textarea {
 .email:hover{
     border: none;
     outline: none;
-    box-shadow: 0px 0px 20px lightgray;
+    box-shadow: 0px 0px 1.25em lightgray;
     cursor: pointer;
 }
 
 #details{
     /* margin-right: 700px; */
     float: left;
-}
-
-#buttons{
-    padding-top: 40px;
 }
 
 @keyframes hide {
