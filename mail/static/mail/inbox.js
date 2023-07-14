@@ -44,7 +44,7 @@ function sendEmail() {
 	.then(response => response.json())
 	.then(result => {
 		// Load the mailbox once the email has been sent.
-		click("sent");
+		click("inbox");
 	});
 }
 
@@ -123,9 +123,9 @@ async function load_mailbox(mailbox) {
 
 		//Background color of the tile based on read status
 		if(email.read){
-			card.style.backgroundColor = 'rgb(236, 236, 236)';
+			card.style.backgroundColor = "rgb(236, 236, 236)";
 		} else {
-			card.style.backgroundColor = 'white';
+			card.style.backgroundColor = "white";
 		}
 		
 		//Div containing the header for the email tile.
@@ -186,8 +186,45 @@ async function load_mailbox(mailbox) {
 		//Add event listeners to the buttons
 		archive.addEventListener("click", (e) => {
 			e.stopPropagation();
-			archiveEmail(email, mailbox)
+			archiveEmail(email)
 		});
+
+		del.addEventListener("click", (e) => {
+			e.stopPropagation();
+			deleteEmail(email);
+		})
+
+		//State variable
+		let readStatus = email.read;
+
+		let isProcessing = false;
+		read.addEventListener("click", async (e) => {
+			e.stopPropagation();
+
+			if (isProcessing) {
+				return
+			}
+
+			isProcessing = true;
+
+			try {	
+				await markRead(email.id, readStatus);
+				readStatus = !readStatus;
+
+				//Change style of the tile
+				const currentCardColor = card.style.backgroundColor;
+				currentCardColor === "white" ? card.style.backgroundColor = "rgb(236, 236, 236)" : card.style.backgroundColor = "white";
+
+				const currentIcon = read_icon.className;
+				currentIcon === "bi bi-envelope-open" ? read_icon.className = "bi bi-envelope-fill" : read_icon.className = "bi bi-envelope-open";
+			}
+			catch (error) {
+				console.log(error);
+			}
+			finally {
+				isProcessing = false;
+			}
+		})
 
 		//Add the buttons to actions div
 		actions.append(archive, del, read);
@@ -203,26 +240,19 @@ async function load_mailbox(mailbox) {
 		document.querySelector('#emails-view').append(card);
 
 		// Add a click event listener to each email.
-		card.addEventListener('click', () => view_email(email, mailbox));
+		card.addEventListener('click', () => viewEmail(email, mailbox));
 		})
 	})
 }
 
 // Function to display an email clicked upon by the user.
-function view_email(email, mailbox){
+function viewEmail(email, mailbox){
 
 	// Show the email view and hide other views.
 	display("email");
 
-	// Make an asynchronous GET request to change the read status of that email to true.
-	if (mailbox === "inbox") {
-		fetch(`/emails/${email.id}`, {
-			method: 'PUT', 
-			body: JSON.stringify({
-			read: true
-			})
-		})
-	}
+	// Make an asynchronous PUT request to change the read status of that email to true.
+	markRead(email);
 
 	// Render the email in an appropriate format.(Do it in React!)
 	const from = document.querySelector('#from');
@@ -260,17 +290,41 @@ function view_email(email, mailbox){
 
 }
 
+//Function to mark an email as read or unread
+async function markRead(emailId, status) {
+	let readStatus;
+	status === true ? readStatus = false : readStatus = true
+
+	//Make the API call to the backend
+	fetch(`/emails/${emailId}`, {
+		method: "PUT",
+		body: JSON.stringify({
+			read: readStatus
+		})
+	})
+	.then(result => console.log(result));
+}
+
+//Function to send an API request to the server to delete an email
+function deleteEmail(email) {
+	//Make the asynchronous request
+	fetch(`/emails/${email.id}`, {
+		method: "DELETE",
+		body: JSON.stringify({
+			email_id: email.id
+		})
+	})
+	.then(result => console.log(result));
+}
+
 // Function to archive a particular email.
-function archiveEmail(email, mailbox){
+function archiveEmail(email){
 
 	// Determine whether the email has to be archived/unarchived
 	// based on the mailbox from which the email was accessed.
 	let archive = null;
-	if (mailbox === 'inbox'){
-		archive = true;
-	} else {
-		archive = false;
-	}
+	email.archived ? archive = false : archive = true
+	
 
 	// Make an asynchronous PUT request to the API to archive/unarchive the email.
 	fetch(`/emails/${email.id}`, {
@@ -279,10 +333,6 @@ function archiveEmail(email, mailbox){
 		archived: archive
 		})
 	})
-	.then(result => {
-		// once the mail id archived, load the inbox.
-		click("inbox");
-	});
 }
 
 // Function to make a reply to an email.
@@ -307,4 +357,5 @@ function reply(email){
 	const body =  email.body;
 	const final = `\n\n ${text} \n ${body}`;
 	document.querySelector('#compose-body').value = final;
+	deleteEmail(email)
 }
