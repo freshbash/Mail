@@ -145,7 +145,7 @@ async function load_mailbox(mailbox) {
 		if (mailbox !== "sent") {
 			sender_div.innerHTML = `From: ${email.sender}`;
 		} else {
-			sender_div.innerHTML = `To: ${email.sender}`;
+			sender_div.innerHTML = `To: ${email.recipients}`;
 		}
 
 		//Div containing the timestamp

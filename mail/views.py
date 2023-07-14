@@ -122,10 +122,10 @@ def email(request, email_id):
     
     # Delete the email
     elif request.method == "DELETE":
-        email = json.loads(request.body)
-        if data.get("email_id") is not None:
+        emailId = json.loads(request.body)
+        if emailId.get("email_id") is not None:
             try:
-                Email.objects.get(pk=data.get("email_id")).delete()
+                Email.objects.get(pk=emailId.get("email_id")).delete()
                 return HttpResponse(status=204)
             except:
                 return HttpResponse(status=400)
